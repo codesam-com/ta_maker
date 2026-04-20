@@ -1,0 +1,82 @@
+
+### Prompt
+real_life_portrait. 1girl from Lithuania, with medium_skin, medium_brown_hair and brown_eyes. Solo. dressed like a porcelain doll with puffed sleeves, lace trim, victorian doll dress, white apron, victorian doll dress. partial body close-up view from above, focus_on_face, exposed_breasts, centered.
+
+---
+
+### Prompt negativo
+flash light, makeup, deformed hands, score_6, score_5, score_4, source_pony, source_anime, source_furry, source_cartoon, bad anatomy, deformed hands, happy, smile, bad hands, extra limbs, missing limbs, worst quality, low quality, low resolution, signatures, watermarks, ugly, imperfect eyes, skewed eyes, unnatural face, unnatural body, errors, male_in_frame
+
+---
+
+### A1111: Activado
+
+---
+
+### Mejora Semántica: Desactivado
+
+---
+
+### Modelo
+LUSTIFY! [SDXL NSFW & SFW checkpoint] - End game
+
+---
+
+### LoRAs
+* LoRA 1:
+	** Add more details XL - beta
+	** Peso: -0.8
+* LoRA 2:
+	** Age Slider LoRA | PonyXL SDXL - v1.0 - Age Slider
+	** Peso: -2.0
+
+---
+
+### Embeddings
+Sin Embeddings.
+
+---
+
+### ControlNet
+Sin ControlNet.
+
+---
+
+### Configuración general
+
+## Relación de Aspecto
+Portrait [2:3] 768x1152
+
+## Método de Sampleo
+Modo Avanzado activado
+* Sampler: dpmpp_sde_gpu
+* Planificador:	karras
+
+* Pasos de Sampleo: 25
+* Escala CFG: 4.5
+* Semilla: 2356449947
+
+---
+
+### Configuración Avanzada
+* Clip Skip: 1
+* ENSD: 31337
+
+---
+
+### Upscale: Activado
+* Custom:
+	** Redimensionar Anchura: 1024
+	** Redimensionar Altura: 1536
+
+## Upscaler: 4x-UltraSharp
+* Etapas de Upscaling: 25
+* Fuerza de Denoising: 0.35
+
+---
+
+### ADetailer: Desactivado
+
+---
+
+### Layer Diffusion: Desactivado
