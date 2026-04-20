@@ -1,0 +1,69 @@
+name: Generate Image
+
+on:
+  repository_dispatch:
+    types: [generate]
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+          pip install pillow
+
+      - name: Restore models cache
+        uses: actions/cache@v4
+        with:
+          path: models/
+          key: models-${{ hashFiles('config/project.yaml') }}
+
+      - name: Clone AUTOMATIC1111
+        run: |
+          git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
+
+      - name: Prepare models
+        run: |
+          mkdir -p stable-diffusion-webui/models/Stable-diffusion
+          mkdir -p stable-diffusion-webui/models/Lora
+          mkdir -p stable-diffusion-webui/models/ESRGAN
+          cp models/* stable-diffusion-webui/models/Stable-diffusion/ || true
+
+      - name: Start A1111 API
+        run: |
+          cd stable-diffusion-webui
+          nohup python launch.py --api --skip-torch-cuda-test > log.txt 2>&1 &
+          sleep 60
+
+      - name: Generate image
+        run: |
+          mkdir -p outputs
+          echo '{"prompt":"real_life_portrait. 1girl from Lithuania, with medium_skin, medium_brown_hair and brown_eyes. Solo. dressed like a porcelain doll with puffed sleeves, lace trim, victorian doll dress, white apron, victorian doll dress. partial body close-up view from above, focus_on_face, exposed_breasts, centered.","negative_prompt":"flash light, makeup, deformed hands, score_6, score_5, score_4, source_pony, source_anime, source_furry, source_cartoon, bad anatomy, deformed hands, happy, smile, bad hands, extra limbs, missing limbs, worst quality, low quality, low resolution, signatures, watermarks, ugly, imperfect eyes, skewed eyes, unnatural face, unnatural body, errors, male_in_frame","steps":25,"cfg_scale":4.5,"width":768,"height":1152,"seed":2356449947}' > payload.json
+          curl -X POST http://127.0.0.1:7860/sdapi/v1/txt2img -H "Content-Type: application/json" -d @payload.json > response.json
+
+      - name: Save image
+        run: |
+          python - <<EOF
+import json, base64
+from PIL import Image
+import io
+
+with open('response.json') as f:
+    data = json.load(f)
+img = base64.b64decode(data['images'][0])
+Image.open(io.BytesIO(img)).save('outputs/generated.png')
+EOF
+
+      - name: Trigger evaluate
+        run: |
+          curl -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/dispatches -d '{"event_type":"evaluate"}'
