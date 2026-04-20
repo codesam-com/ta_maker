@@ -1,5 +1,0 @@
-Repo de GitHub: "https://github.com/codesam-com/ta_maker"
-Modelo "LUSTIFY! [SDXL NSFW & SFW checkpoint] - End game" (lustifySDXLNSFW_ggwpV7.safetensors): "https://drive.google.com/file/d/134KP1blX3R4SyaKnjcT9z1MXbMsF5DtC/view?usp=sharing"
-LoRa "Add more details XL - beta" (more_details.safetensors): "https://drive.google.com/file/d/1oOe1B5F4z6AogoRMv9CZYO_O5ZXYW8D5/view?usp=sharing"
-LoRa "Age Slider LoRA | PonyXL SDXL - v1.0 - Age Slider" (StS_age_slider_v1_initial_release.safetensors): "https://drive.google.com/file/d/1BTU-sXMXvMdUBO9LXrL5x-7M8NC3dEp8/view?usp=sharing"
-Upscaler "4x-UltraSharp" (4x-UltraSharp.pth): "https://drive.google.com/file/d/1KLq0bvHceyaKCnz5nOxelgfVOdJZAZpA/view?usp=sharing"

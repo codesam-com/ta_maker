@@ -1,0 +1,28 @@
+project:
+  name: ta_maker
+  repo: https://github.com/codesam-com/ta_maker
+  version: 1
+
+resources:
+
+  - id: lustify_checkpoint
+    type: checkpoint
+    filename: lustify.safetensors
+    url: https://drive.google.com/file/d/134KP1blX3R4SyaKnjcT9z1MXbMsF5DtC/view?usp=sharing
+
+  - id: more_details_lora
+    type: lora
+    filename: more_details.safetensors
+    url: https://drive.google.com/file/d/1oOe1B5F4z6AogoRMv9CZYO_O5ZXYW8D5/view?usp=sharing
+    weight: -0.8
+
+  - id: age_slider_lora
+    type: lora
+    filename: age_slider.safetensors
+    url: https://drive.google.com/file/d/1BTU-sXMXvMdUBO9LXrL5x-7M8NC3dEp8/view?usp=sharing
+    weight: -2.0
+
+  - id: ultrasharp_upscaler
+    type: upscaler
+    filename: 4x-UltraSharp.pth
+    url: https://drive.google.com/file/d/1KLq0bvHceyaKCnz5nOxelgfVOdJZAZpA/view?usp=sharing
