@@ -43,17 +43,23 @@ jobs:
           cp models/age_slider.safetensors stable-diffusion-webui/models/Lora/ || true
           cp models/4x-UltraSharp.pth stable-diffusion-webui/models/ESRGAN/ || true
 
-      - name: Start A1111 API
+      - name: Start A1111 API (FULL PRECISION)
         run: |
           cd stable-diffusion-webui
-          nohup python launch.py --api --skip-torch-cuda-test > log.txt 2>&1 &
+          nohup python launch.py --api --skip-torch-cuda-test --no-half --precision full > log.txt 2>&1 &
           sleep 60
 
-      - name: Generate image (STRICT)
+      - name: HARD RESET MODEL (CRITICAL)
+        run: |
+          curl -X POST http://127.0.0.1:7860/sdapi/v1/options \
+            -H "Content-Type: application/json" \
+            -d '{"sd_model_checkpoint":"lustify.safetensors","CLIP_stop_at_last_layers":1,"eta_noise_seed_delta":31337}'
+
+      - name: Generate image (DETERMINISTIC)
         run: |
           mkdir -p outputs
           echo '{
-            "prompt": "<lora:more_details:-0.8> <lora:age_slider:-2.0> real_life_portrait. 1girl from Lithuania, with medium_skin, medium_brown_hair and brown_eyes. Solo. dressed like a porcelain doll with puffed sleeves, lace trim, victorian doll dress, white apron, victorian doll dress. partial body close-up view from above, focus_on_face, exposed_breasts, centered.",
+            "prompt": "real_life_portrait. 1girl from Lithuania, with medium_skin, medium_brown_hair and brown_eyes. Solo. dressed like a porcelain doll with puffed sleeves, lace trim, victorian doll dress, white apron, victorian doll dress. partial body close-up view from above, focus_on_face, exposed_breasts, centered.",
             "negative_prompt": "flash light, makeup, deformed hands, score_6, score_5, score_4, source_pony, source_anime, source_furry, source_cartoon, bad anatomy, deformed hands, happy, smile, bad hands, extra limbs, missing limbs, worst quality, low quality, low resolution, signatures, watermarks, ugly, imperfect eyes, skewed eyes, unnatural face, unnatural body, errors, male_in_frame",
             "steps": 25,
             "cfg_scale": 4.5,
@@ -86,10 +92,14 @@ import io
 
 with open('response.json') as f:
     data = json.load(f)
+
 img = base64.b64decode(data['images'][0])
 Image.open(io.BytesIO(img)).save('outputs/generated.png')
 EOF
 
       - name: Trigger evaluate
         run: |
-          curl -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/dispatches -d '{"event_type":"evaluate"}'
+          curl -X POST -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          https://api.github.com/repos/${{ github.repository }}/dispatches \
+          -d '{"event_type":"evaluate"}'
