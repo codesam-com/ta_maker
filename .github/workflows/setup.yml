@@ -1,0 +1,62 @@
+name: Setup Environment
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [setup]
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+          pip install pyyaml gdown
+
+      - name: Cache models
+        uses: actions/cache@v4
+        with:
+          path: |
+            models/
+          key: models-${{ hashFiles('config/project.yaml') }}
+
+      - name: Download models from project.yaml
+        run: |
+          python scripts/download_models.py
+
+      - name: Clone AUTOMATIC1111
+        run: |
+          git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
+
+      - name: Prepare A1111 environment
+        run: |
+          cd stable-diffusion-webui
+          pip install -r requirements.txt
+
+      - name: Move models into A1111 structure
+        run: |
+          mkdir -p stable-diffusion-webui/models/Stable-diffusion
+          mkdir -p stable-diffusion-webui/models/Lora
+          mkdir -p stable-diffusion-webui/models/ESRGAN
+
+          cp models/*.safetensors stable-diffusion-webui/models/Stable-diffusion/ || true
+          cp models/*lora*.safetensors stable-diffusion-webui/models/Lora/ || true
+          cp models/*.pth stable-diffusion-webui/models/ESRGAN/ || true
+
+      - name: Trigger generate workflow
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/dispatches \
+            -d '{"event_type":"generate"}'
