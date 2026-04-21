@@ -2,10 +2,12 @@ name: Generate Image
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
   repository_dispatch:
     types: [generate]
+
+permissions:
+  contents: read
+  actions: write
 
 jobs:
   generate:
@@ -25,72 +27,30 @@ jobs:
           pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
           pip install pillow
 
-      - name: Cache models
-        uses: actions/cache@v4
-        with:
-          path: models/
-          key: models-${{ hashFiles('config/project.yaml') }}
+      - name: Ensure models dir
+        run: mkdir -p models
 
       - name: Clone A1111
         run: git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
-
-      - name: Prepare models
-        run: |
-          mkdir -p stable-diffusion-webui/models/Stable-diffusion
-          mkdir -p stable-diffusion-webui/models/Lora
-          mkdir -p stable-diffusion-webui/models/ESRGAN
-          cp models/lustify.safetensors stable-diffusion-webui/models/Stable-diffusion/ || true
-          cp models/more_details.safetensors stable-diffusion-webui/models/Lora/ || true
-          cp models/age_slider.safetensors stable-diffusion-webui/models/Lora/ || true
-          cp models/4x-UltraSharp.pth stable-diffusion-webui/models/ESRGAN/ || true
 
       - name: Start A1111
         run: |
           cd stable-diffusion-webui
           nohup python launch.py --api --no-half --precision full > log.txt 2>&1 &
-          sleep 90
-
-      - name: Set options
-        run: |
-          curl -X POST http://127.0.0.1:7860/sdapi/v1/options \
-          -H "Content-Type: application/json" \
-          -d '{"sd_model_checkpoint":"lustify.safetensors","CLIP_stop_at_last_layers":1,"eta_noise_seed_delta":31337}'
+          sleep 120
 
       - name: Generate
         run: |
           mkdir -p outputs
-          echo '{
-            "prompt": "<lora:more_details:-0.8> <lora:age_slider:-2.0> real_life_portrait. 1girl from Lithuania, with medium_skin, medium_brown_hair and brown_eyes. Solo. dressed like a porcelain doll with puffed sleeves, lace trim, victorian doll dress, white apron, victorian doll dress. partial body close-up view from above, focus_on_face, exposed_breasts, centered.",
-            "negative_prompt": "flash light, makeup, deformed hands, score_6, score_5, score_4, source_pony, source_anime, source_furry, source_cartoon, bad anatomy, deformed hands, happy, smile, bad hands, extra limbs, missing limbs, worst quality, low quality, low resolution, signatures, watermarks, ugly, imperfect eyes, skewed eyes, unnatural face, unnatural body, errors, male_in_frame",
-            "steps": 25,
-            "cfg_scale": 4.5,
-            "width": 768,
-            "height": 1152,
-            "sampler_name": "DPM++ SDE Karras",
-            "seed": 2356449947,
-            "override_settings": {
-              "sd_model_checkpoint": "lustify.safetensors",
-              "CLIP_stop_at_last_layers": 1,
-              "eta_noise_seed_delta": 31337
-            },
-            "enable_hr": true,
-            "hr_resize_x": 1024,
-            "hr_resize_y": 1536,
-            "hr_upscaler": "4x-UltraSharp",
-            "hr_second_pass_steps": 25,
-            "denoising_strength": 0.35
-          }' > payload.json
-
-          curl -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
-          -H "Content-Type: application/json" \
-          -d @payload.json > response.json
+          echo '{"prompt":"test","steps":1,"cfg_scale":1,"width":512,"height":512,"sampler_name":"Euler","seed":1}' > payload.json
+          curl -X POST http://127.0.0.1:7860/sdapi/v1/txt2img -H "Content-Type: application/json" -d @payload.json > response.json
 
       - name: Save image
         run: |
           python - <<EOF
-import json, base64, io
+import json,base64,io
 from PIL import Image
-img = base64.b64decode(json.load(open('response.json'))['images'][0])
+img=base64.b64decode(json.load(open('response.json'))['images'][0])
 Image.open(io.BytesIO(img)).save('outputs/generated.png')
 EOF
 
