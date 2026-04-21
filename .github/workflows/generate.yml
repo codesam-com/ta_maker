@@ -34,9 +34,17 @@ jobs:
       - name: Clone A1111
         run: git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
 
+      - name: Prepare A1111 venv
+        run: |
+          cd stable-diffusion-webui
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip setuptools wheel
+
       - name: Start A1111
         run: |
           cd stable-diffusion-webui
+          source venv/bin/activate
 
           echo "Starting A1111..."
           python launch.py --api --skip-torch-cuda-test --use-cpu all --no-half --precision full > log.txt 2>&1 &
@@ -56,16 +64,16 @@ jobs:
         run: |
           mkdir -p outputs
           cat <<EOF > payload.json
-          {
-            "prompt": "test",
-            "steps": 1,
-            "cfg_scale": 1,
-            "width": 512,
-            "height": 512,
-            "sampler_name": "Euler",
-            "seed": 1
-          }
-          EOF
+{
+  "prompt": "test",
+  "steps": 1,
+  "cfg_scale": 1,
+  "width": 512,
+  "height": 512,
+  "sampler_name": "Euler",
+  "seed": 1
+}
+EOF
 
           curl -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
           -H "Content-Type: application/json" \
@@ -74,11 +82,11 @@ jobs:
       - name: Save image
         run: |
           python - <<EOF
-          import json, base64, io
-          from PIL import Image
-          img = base64.b64decode(json.load(open('response.json'))['images'][0])
-          Image.open(io.BytesIO(img)).save('outputs/generated.png')
-          EOF
+import json, base64, io
+from PIL import Image
+img = base64.b64decode(json.load(open('response.json'))['images'][0])
+Image.open(io.BytesIO(img)).save('outputs/generated.png')
+EOF
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
