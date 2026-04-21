@@ -15,12 +15,12 @@ def download_file(url, output_path):
 
     print(f"[DOWNLOAD] {url}")
 
-    if "drive.google.com" in url:
-        # gdown handles /file/d/.../view links, confirmation pages,
-        # and large-file downloads more reliably than urllib.
-        gdown.download(url=url, output=output_path, quiet=False, fuzzy=True)
-    else:
-        gdown.download(url=url, output=output_path, quiet=False, fuzzy=False)
+    # gdown supports shared Google Drive links directly and also works
+    # as a general HTTP/HTTPS downloader. Avoid unsupported kwargs like
+    # fuzzy in the Python API to keep compatibility with the installed version.
+    result = gdown.download(url=url, output=output_path, quiet=False)
+    if result is None or not os.path.exists(output_path):
+        raise RuntimeError(f"Download failed for {url}")
 
 
 def main():
