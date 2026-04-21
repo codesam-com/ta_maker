@@ -22,17 +22,34 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install deps
+      - name: Install dependencies
         run: |
           pip install --upgrade pip "setuptools<82" wheel packaging
           pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-          pip install pillow
+          pip install pillow pyyaml gdown
 
-      - name: Ensure models dir
-        run: mkdir -p models
+      - name: Cache models
+        uses: actions/cache@v4
+        with:
+          path: models/
+          key: models-${{ hashFiles('config/project.yaml') }}
+
+      - name: Download models from project.yaml
+        run: python scripts/download_models.py
 
       - name: Clone A1111
         run: git clone --branch dev https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
+
+      - name: Prepare A1111 resources
+        run: |
+          mkdir -p stable-diffusion-webui/models/Stable-diffusion
+          mkdir -p stable-diffusion-webui/models/Lora
+          mkdir -p stable-diffusion-webui/models/ESRGAN
+
+          cp models/lustify.safetensors stable-diffusion-webui/models/Stable-diffusion/
+          cp models/more_details.safetensors stable-diffusion-webui/models/Lora/
+          cp models/age_slider.safetensors stable-diffusion-webui/models/Lora/
+          cp models/4x-UltraSharp.pth stable-diffusion-webui/models/ESRGAN/
 
       - name: Prepare A1111 venv
         run: |
@@ -51,7 +68,7 @@ jobs:
           python launch.py --api --skip-torch-cuda-test --use-cpu all --no-half --precision full > log.txt 2>&1 &
 
           echo "Streaming logs in real time:"
-          tail -n 20 -f log.txt &
+          tail -n 50 -f log.txt &
 
           echo "Waiting for A1111 API..."
           until curl -s http://127.0.0.1:7860/sdapi/v1/samplers > /dev/null; do
@@ -61,31 +78,53 @@ jobs:
 
           echo "A1111 is ready"
 
-      - name: Generate
+      - name: Set A1111 options
+        run: |
+          curl -X POST http://127.0.0.1:7860/sdapi/v1/options \
+            -H "Content-Type: application/json" \
+            -d '{"sd_model_checkpoint":"lustify.safetensors","CLIP_stop_at_last_layers":1,"eta_noise_seed_delta":31337}'
+
+      - name: Generate image with control panel parameters
         run: |
           mkdir -p outputs
-          cat <<EOF > payload.json
+          cat > payload.json <<'EOF'
           {
-            "prompt": "test",
-            "steps": 1,
-            "cfg_scale": 1,
-            "width": 512,
-            "height": 512,
-            "sampler_name": "Euler",
-            "seed": 1
+            "prompt": "<lora:more_details:-0.8> <lora:age_slider:-2.0> real_life_portrait. 1girl from Lithuania, with medium_skin, medium_brown_hair and brown_eyes. Solo. dressed like a porcelain doll with puffed sleeves, lace trim, victorian doll dress, white apron, victorian doll dress. partial body close-up view from above, focus_on_face, exposed_breasts, centered.",
+            "negative_prompt": "flash light, makeup, deformed hands, score_6, score_5, score_4, source_pony, source_anime, source_furry, source_cartoon, bad anatomy, deformed hands, happy, smile, bad hands, extra limbs, missing limbs, worst quality, low quality, low resolution, signatures, watermarks, ugly, imperfect eyes, skewed eyes, unnatural face, unnatural body, errors, male_in_frame",
+            "steps": 25,
+            "cfg_scale": 4.5,
+            "width": 768,
+            "height": 1152,
+            "sampler_name": "DPM++ SDE Karras",
+            "seed": 2356449947,
+            "override_settings": {
+              "sd_model_checkpoint": "lustify.safetensors",
+              "CLIP_stop_at_last_layers": 1,
+              "eta_noise_seed_delta": 31337
+            },
+            "enable_hr": true,
+            "hr_resize_x": 1024,
+            "hr_resize_y": 1536,
+            "hr_upscaler": "4x-UltraSharp",
+            "hr_second_pass_steps": 25,
+            "denoising_strength": 0.35
           }
           EOF
 
           curl -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
-          -H "Content-Type: application/json" \
-          -d @payload.json > response.json
+            -H "Content-Type: application/json" \
+            -d @payload.json > response.json
 
       - name: Save image
         run: |
-          python - <<EOF
+          python - <<'EOF'
           import json, base64, io
           from PIL import Image
-          img = base64.b64decode(json.load(open('response.json'))['images'][0])
+
+          with open('response.json', 'r', encoding='utf-8') as f:
+              data = json.load(f)
+
+          img = base64.b64decode(data['images'][0])
           Image.open(io.BytesIO(img)).save('outputs/generated.png')
           EOF
 
