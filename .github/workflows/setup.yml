@@ -1,12 +1,17 @@
-name: Setup Environment
+name: Fetch And Evaluate Generated Image
 
 on:
   workflow_dispatch:
+    inputs:
+      generated_image_url:
+        description: "Direct URL to generated.png produced by Kaggle"
+        required: false
+        type: string
   repository_dispatch:
-    types: [setup]
+    types: [evaluate]
 
 jobs:
-  setup:
+  evaluate:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,46 +25,33 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-          pip install pyyaml gdown
+          pip install --upgrade pip
+          pip install pillow numpy scikit-image requests
 
-      - name: Cache models
-        uses: actions/cache@v4
-        with:
-          path: |
-            models/
-          key: models-${{ hashFiles('config/project.yaml') }}
+      - name: Prepare outputs directory
+        run: mkdir -p outputs
 
-      - name: Download models from project.yaml
+      - name: Resolve generated image URL
+        id: resolve_url
+        env:
+          INPUT_URL: ${{ inputs.generated_image_url }}
+          CLIENT_URL: ${{ github.event.client_payload.generated_image_url }}
         run: |
-          python scripts/download_models.py
+          URL="${INPUT_URL}"
+          if [ -z "$URL" ]; then
+            URL="${CLIENT_URL}"
+          fi
+          echo "generated_image_url=$URL" >> "$GITHUB_OUTPUT"
+          if [ -z "$URL" ]; then
+            echo "No generated_image_url provided."
+            exit 1
+          fi
 
-      - name: Clone AUTOMATIC1111
+      - name: Download generated image
         run: |
-          git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
+          curl -L "${{ steps.resolve_url.outputs.generated_image_url }}" -o outputs/generated.png
+          test -s outputs/generated.png
+          ls -lh outputs/generated.png
 
-      - name: Prepare A1111 environment
-        run: |
-          cd stable-diffusion-webui
-          pip install -r requirements.txt
-
-      - name: Move models into A1111 structure (FIXED)
-        run: |
-          mkdir -p stable-diffusion-webui/models/Stable-diffusion
-          mkdir -p stable-diffusion-webui/models/Lora
-          mkdir -p stable-diffusion-webui/models/ESRGAN
-
-          cp models/lustify.safetensors stable-diffusion-webui/models/Stable-diffusion/ || true
-
-          cp models/more_details.safetensors stable-diffusion-webui/models/Lora/ || true
-          cp models/age_slider.safetensors stable-diffusion-webui/models/Lora/ || true
-
-          cp models/4x-UltraSharp.pth stable-diffusion-webui/models/ESRGAN/ || true
-
-      - name: Trigger generate workflow
-        run: |
-          curl -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/${{ github.repository }}/dispatches \
-            -d '{"event_type":"generate"}'
+      - name: Run evaluation
+        run: python evaluation/evaluate.py
