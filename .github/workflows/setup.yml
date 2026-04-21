@@ -43,15 +43,18 @@ jobs:
           cd stable-diffusion-webui
           pip install -r requirements.txt
 
-      - name: Move models into A1111 structure
+      - name: Move models into A1111 structure (FIXED)
         run: |
           mkdir -p stable-diffusion-webui/models/Stable-diffusion
           mkdir -p stable-diffusion-webui/models/Lora
           mkdir -p stable-diffusion-webui/models/ESRGAN
 
-          cp models/*.safetensors stable-diffusion-webui/models/Stable-diffusion/ || true
-          cp models/*lora*.safetensors stable-diffusion-webui/models/Lora/ || true
-          cp models/*.pth stable-diffusion-webui/models/ESRGAN/ || true
+          cp models/lustify.safetensors stable-diffusion-webui/models/Stable-diffusion/ || true
+
+          cp models/more_details.safetensors stable-diffusion-webui/models/Lora/ || true
+          cp models/age_slider.safetensors stable-diffusion-webui/models/Lora/ || true
+
+          cp models/4x-UltraSharp.pth stable-diffusion-webui/models/ESRGAN/ || true
 
       - name: Trigger generate workflow
         run: |
