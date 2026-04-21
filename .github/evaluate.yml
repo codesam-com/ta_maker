@@ -1,0 +1,33 @@
+name: Evaluate Image
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [evaluate]
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pillow numpy scikit-image
+
+      - name: Ensure outputs folder
+        run: mkdir -p outputs
+
+      - name: List outputs
+        run: ls -lh outputs || true
+
+      - name: Run evaluation
+        run: python evaluation/evaluate.py
