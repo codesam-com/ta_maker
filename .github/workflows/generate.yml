@@ -42,15 +42,28 @@ jobs:
       - name: Generate
         run: |
           mkdir -p outputs
-          echo '{"prompt":"test","steps":1,"cfg_scale":1,"width":512,"height":512,"sampler_name":"Euler","seed":1}' > payload.json
-          curl -X POST http://127.0.0.1:7860/sdapi/v1/txt2img -H "Content-Type: application/json" -d @payload.json > response.json
+          cat <<EOF > payload.json
+          {
+            "prompt": "test",
+            "steps": 1,
+            "cfg_scale": 1,
+            "width": 512,
+            "height": 512,
+            "sampler_name": "Euler",
+            "seed": 1
+          }
+          EOF
+
+          curl -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
+          -H "Content-Type: application/json" \
+          -d @payload.json > response.json
 
       - name: Save image
         run: |
           python - <<EOF
-import json,base64,io
+import json, base64, io
 from PIL import Image
-img=base64.b64decode(json.load(open('response.json'))['images'][0])
+img = base64.b64decode(json.load(open('response.json'))['images'][0])
 Image.open(io.BytesIO(img)).save('outputs/generated.png')
 EOF
 
