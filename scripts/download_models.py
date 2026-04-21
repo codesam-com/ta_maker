@@ -1,6 +1,6 @@
 import os
 import yaml
-import urllib.request
+import gdown
 
 CONFIG_PATH = "config/project.yaml"
 OUTPUT_DIR = "models"
@@ -16,20 +16,15 @@ def download_file(url, output_path):
     print(f"[DOWNLOAD] {url}")
 
     if "drive.google.com" in url:
-        if "/d/" in url:
-            file_id = url.split("/d/")[1].split("/")[0]
-        elif "id=" in url:
-            file_id = url.split("id=")[1].split("&")[0]
-        else:
-            raise ValueError("Invalid Google Drive URL")
-
-        url = f"https://drive.google.com/uc?export=download&id={file_id}"
-
-    urllib.request.urlretrieve(url, output_path)
+        # gdown handles /file/d/.../view links, confirmation pages,
+        # and large-file downloads more reliably than urllib.
+        gdown.download(url=url, output=output_path, quiet=False, fuzzy=True)
+    else:
+        gdown.download(url=url, output=output_path, quiet=False, fuzzy=False)
 
 
 def main():
-    with open(CONFIG_PATH, "r") as f:
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
     for res in config["resources"]:
