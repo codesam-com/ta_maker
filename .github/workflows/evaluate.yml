@@ -24,47 +24,47 @@ jobs:
       - name: Run evaluation
         run: |
           python - <<EOF
-import os
-import json
-import numpy as np
-from PIL import Image
-from skimage.metrics import structural_similarity as ssim
-
-TARGET_PATH = "target/target_image.png"
-GENERATED_PATH = "outputs/generated.png"
-OUTPUT_METRICS = "outputs/metrics.json"
-
-if not os.path.exists(TARGET_PATH) or not os.path.exists(GENERATED_PATH):
-    raise FileNotFoundError("Missing images for evaluation")
-
-img1 = np.array(Image.open(TARGET_PATH).convert("RGB"))
-img2 = np.array(Image.open(GENERATED_PATH).convert("RGB"))
-
-# Resize if needed
-if img1.shape != img2.shape:
-    from skimage.transform import resize
-    img2 = resize(img2, img1.shape, anti_aliasing=True)
-
-score, _ = ssim(img1, img2, channel_axis=2, full=True)
-
-metrics = {
-    "ssim": float(score)
-}
-
-os.makedirs("outputs", exist_ok=True)
-with open(OUTPUT_METRICS, "w") as f:
-    json.dump(metrics, f, indent=2)
-
-print("SSIM:", score)
-
-# Threshold for success
-if score > 0.95:
-    print("MATCH SUCCESS")
-    exit(0)
-else:
-    print("MATCH FAIL")
-    exit(1)
-EOF
+          import os
+          import json
+          import numpy as np
+          from PIL import Image
+          from skimage.metrics import structural_similarity as ssim
+          
+          TARGET_PATH = "target/target_image.png"
+          GENERATED_PATH = "outputs/generated.png"
+          OUTPUT_METRICS = "outputs/metrics.json"
+          
+          if not os.path.exists(TARGET_PATH) or not os.path.exists(GENERATED_PATH):
+              raise FileNotFoundError("Missing images for evaluation")
+          
+          img1 = np.array(Image.open(TARGET_PATH).convert("RGB"))
+          img2 = np.array(Image.open(GENERATED_PATH).convert("RGB"))
+          
+          # Resize if needed
+          if img1.shape != img2.shape:
+              from skimage.transform import resize
+              img2 = resize(img2, img1.shape, anti_aliasing=True)
+          
+          score, _ = ssim(img1, img2, channel_axis=2, full=True)
+          
+          metrics = {
+              "ssim": float(score)
+          }
+          
+          os.makedirs("outputs", exist_ok=True)
+          with open(OUTPUT_METRICS, "w") as f:
+              json.dump(metrics, f, indent=2)
+          
+          print("SSIM:", score)
+          
+          # Threshold for success
+          if score > 0.95:
+              print("MATCH SUCCESS")
+              exit(0)
+          else:
+              print("MATCH FAIL")
+              exit(1)
+          EOF
 
       - name: Trigger improve if failed
         if: failure()
