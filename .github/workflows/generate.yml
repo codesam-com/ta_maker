@@ -59,7 +59,7 @@ jobs:
         run: |
           mkdir -p outputs
           echo '{
-            "prompt": "real_life_portrait. 1girl from Lithuania, with medium_skin, medium_brown_hair and brown_eyes. Solo. dressed like a porcelain doll with puffed sleeves, lace trim, victorian doll dress, white apron, victorian doll dress. partial body close-up view from above, focus_on_face, exposed_breasts, centered.",
+            "prompt": "<lora:more_details:-0.8> <lora:age_slider:-2.0> real_life_portrait. 1girl from Lithuania, with medium_skin, medium_brown_hair and brown_eyes. Solo. dressed like a porcelain doll with puffed sleeves, lace trim, victorian doll dress, white apron, victorian doll dress. partial body close-up view from above, focus_on_face, exposed_breasts, centered.",
             "negative_prompt": "flash light, makeup, deformed hands, score_6, score_5, score_4, source_pony, source_anime, source_furry, source_cartoon, bad anatomy, deformed hands, happy, smile, bad hands, extra limbs, missing limbs, worst quality, low quality, low resolution, signatures, watermarks, ugly, imperfect eyes, skewed eyes, unnatural face, unnatural body, errors, male_in_frame",
             "steps": 25,
             "cfg_scale": 4.5,
