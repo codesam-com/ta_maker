@@ -32,10 +32,20 @@ jobs:
         uses: actions/cache@v4
         with:
           path: models/
-          key: models-${{ hashFiles('config/project.yaml') }}
+          key: models-v2-${{ hashFiles('config/project.yaml') }}
+
+      - name: Force clean checkpoint
+        run: |
+          mkdir -p models
+          rm -f models/lustify.safetensors
 
       - name: Download models from project.yaml
         run: python scripts/download_models.py
+
+      - name: Show model info
+        run: |
+          ls -lh models || true
+          file models/lustify.safetensors || true
 
       - name: Clone A1111
         run: git clone --branch dev https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
@@ -84,30 +94,13 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"sd_model_checkpoint":"lustify.safetensors","CLIP_stop_at_last_layers":1,"eta_noise_seed_delta":31337}'
 
-      - name: Generate image with control panel parameters
+      - name: Generate image
         run: |
           mkdir -p outputs
           cat > payload.json <<'EOF'
           {
-            "prompt": "<lora:more_details:-0.8> <lora:age_slider:-2.0> real_life_portrait. 1girl from Lithuania, with medium_skin, medium_brown_hair and brown_eyes. Solo. dressed like a porcelain doll with puffed sleeves, lace trim, victorian doll dress, white apron, victorian doll dress. partial body close-up view from above, focus_on_face, exposed_breasts, centered.",
-            "negative_prompt": "flash light, makeup, deformed hands, score_6, score_5, score_4, source_pony, source_anime, source_furry, source_cartoon, bad anatomy, deformed hands, happy, smile, bad hands, extra limbs, missing limbs, worst quality, low quality, low resolution, signatures, watermarks, ugly, imperfect eyes, skewed eyes, unnatural face, unnatural body, errors, male_in_frame",
-            "steps": 25,
-            "cfg_scale": 4.5,
-            "width": 768,
-            "height": 1152,
-            "sampler_name": "DPM++ SDE Karras",
-            "seed": 2356449947,
-            "override_settings": {
-              "sd_model_checkpoint": "lustify.safetensors",
-              "CLIP_stop_at_last_layers": 1,
-              "eta_noise_seed_delta": 31337
-            },
-            "enable_hr": true,
-            "hr_resize_x": 1024,
-            "hr_resize_y": 1536,
-            "hr_upscaler": "4x-UltraSharp",
-            "hr_second_pass_steps": 25,
-            "denoising_strength": 0.35
+            "prompt": "test",
+            "steps": 5
           }
           EOF
 
@@ -116,44 +109,6 @@ jobs:
             -d @payload.json)
 
           echo "txt2img HTTP status: ${http_code}"
-          python - <<'EOF'
-          import json
-          from pathlib import Path
-
-          p = Path('response.json')
-          if not p.exists():
-              raise SystemExit('response.json was not created')
-
-          raw = p.read_text(encoding='utf-8', errors='replace')
-          print('Response preview:')
-          print(raw[:2000])
-
-          try:
-              data = json.loads(raw)
-          except Exception as e:
-              raise SystemExit(f'API returned non-JSON response: {e}')
-
-          if 'images' not in data:
-              raise SystemExit(f"API did not return images. Top-level keys: {list(data.keys())}")
-          EOF
+          cat response.json
 
           test "$http_code" = "200"
-
-      - name: Save image
-        run: |
-          python - <<'EOF'
-          import json, base64, io
-          from PIL import Image
-
-          with open('response.json', 'r', encoding='utf-8') as f:
-              data = json.load(f)
-
-          img = base64.b64decode(data['images'][0])
-          Image.open(io.BytesIO(img)).save('outputs/generated.png')
-          EOF
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-image
-          path: outputs/generated.png
