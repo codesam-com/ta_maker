@@ -111,9 +111,33 @@ jobs:
           }
           EOF
 
-          curl -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
+          http_code=$(curl -sS -o response.json -w "%{http_code}" -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
             -H "Content-Type: application/json" \
-            -d @payload.json > response.json
+            -d @payload.json)
+
+          echo "txt2img HTTP status: ${http_code}"
+          python - <<'EOF'
+          import json
+          from pathlib import Path
+
+          p = Path('response.json')
+          if not p.exists():
+              raise SystemExit('response.json was not created')
+
+          raw = p.read_text(encoding='utf-8', errors='replace')
+          print('Response preview:')
+          print(raw[:2000])
+
+          try:
+              data = json.loads(raw)
+          except Exception as e:
+              raise SystemExit(f'API returned non-JSON response: {e}')
+
+          if 'images' not in data:
+              raise SystemExit(f"API did not return images. Top-level keys: {list(data.keys())}")
+          EOF
+
+          test "$http_code" = "200"
 
       - name: Save image
         run: |
