@@ -36,27 +36,35 @@ jobs:
       - name: Start A1111
         run: |
           cd stable-diffusion-webui
+
+          echo "Starting A1111..."
           python launch.py --api --skip-torch-cuda-test --use-cpu all --no-half --precision full > log.txt 2>&1 &
+
+          echo "Streaming logs in real time:"
+          tail -n 20 -f log.txt &
 
           echo "Waiting for A1111 API..."
           until curl -s http://127.0.0.1:7860/sdapi/v1/samplers > /dev/null; do
+            echo "[WAIT] still initializing..."
             sleep 5
           done
+
+          echo "A1111 is ready"
 
       - name: Generate
         run: |
           mkdir -p outputs
           cat <<EOF > payload.json
-          {
-            "prompt": "test",
-            "steps": 1,
-            "cfg_scale": 1,
-            "width": 512,
-            "height": 512,
-            "sampler_name": "Euler",
-            "seed": 1
-          }
-          EOF
+{
+  "prompt": "test",
+  "steps": 1,
+  "cfg_scale": 1,
+  "width": 512,
+  "height": 512,
+  "sampler_name": "Euler",
+  "seed": 1
+}
+EOF
 
           curl -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
           -H "Content-Type: application/json" \
@@ -65,11 +73,11 @@ jobs:
       - name: Save image
         run: |
           python - <<EOF
-          import json, base64, io
-          from PIL import Image
-          img = base64.b64decode(json.load(open('response.json'))['images'][0])
-          Image.open(io.BytesIO(img)).save('outputs/generated.png')
-          EOF
+import json, base64, io
+from PIL import Image
+img = base64.b64decode(json.load(open('response.json'))['images'][0])
+Image.open(io.BytesIO(img)).save('outputs/generated.png')
+EOF
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
