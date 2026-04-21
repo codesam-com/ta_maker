@@ -32,7 +32,7 @@ jobs:
         run: mkdir -p models
 
       - name: Clone A1111
-        run: git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
+        run: git clone --branch dev https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
 
       - name: Prepare A1111 venv
         run: |
