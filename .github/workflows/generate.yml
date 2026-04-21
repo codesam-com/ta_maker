@@ -43,16 +43,16 @@ jobs:
         run: |
           mkdir -p outputs
           cat <<EOF > payload.json
-          {
-            "prompt": "test",
-            "steps": 1,
-            "cfg_scale": 1,
-            "width": 512,
-            "height": 512,
-            "sampler_name": "Euler",
-            "seed": 1
-          }
-          EOF
+{
+  "prompt": "test",
+  "steps": 1,
+  "cfg_scale": 1,
+  "width": 512,
+  "height": 512,
+  "sampler_name": "Euler",
+  "seed": 1
+}
+EOF
 
           curl -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
           -H "Content-Type: application/json" \
