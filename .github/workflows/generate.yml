@@ -24,7 +24,7 @@ jobs:
 
       - name: Install deps
         run: |
-          pip install --upgrade pip setuptools wheel
+          pip install --upgrade pip "setuptools<82" wheel packaging
           pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
           pip install pillow
 
@@ -39,7 +39,7 @@ jobs:
           cd stable-diffusion-webui
           python -m venv venv
           source venv/bin/activate
-          pip install --upgrade pip setuptools wheel
+          pip install --upgrade pip "setuptools<82" wheel packaging
           pip install --no-build-isolation https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip
 
       - name: Start A1111
